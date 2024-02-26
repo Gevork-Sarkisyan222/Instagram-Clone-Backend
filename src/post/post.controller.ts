@@ -13,6 +13,8 @@ import { PostService } from './post.service';
 import { CreatePostDto } from './dto/CreatePost.dto';
 import { UpdateUserDto } from 'src/user/dto/updateUser.dto';
 import { UpdatePostDto } from './dto/UpdatePost.dto';
+import { CreateCommentDto } from './dto/CreateComment.dto';
+import { UpdateCommentDto } from './dto/UpdateComment.dto';
 
 @Controller('post')
 export class PostController {
@@ -99,5 +101,30 @@ export class PostController {
   async fetchUsersCreatedPosts(@Param('id') id: string) {
     const createdPosts = await this.postService.fetchUsersCreatedPosts(id);
     return createdPosts;
+  }
+
+
+
+
+
+  // adding comment into post
+  @Post('/comment/:postId')
+  async createComment(@Body() createCommentDto: CreateCommentDto, @Param('postId') postId: string, @Request() req: any) {
+    const comment = await this.postService.createComment(createCommentDto, postId, req)
+    return comment
+  }
+
+  // delete comment
+  @Delete('/comment/:commentId')
+  async deleteComment(@Param('commentId') commentId: string, @Request() req: any) {
+    await this.postService.deleteComment(commentId, req);
+    return 'Comment has been deleted!!'
+  }
+
+  @Patch('/comment/:commentId')
+  async updateComment(@Param('commentId') commentId: string, @Body() updateCommentDto: UpdateCommentDto, @Request() req: any) {
+    const updatedComment = await this.postService.updateComment(commentId, updateCommentDto, req)
+    // return 'Comment has been edited'
+    return updatedComment
   }
 }

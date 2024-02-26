@@ -10,7 +10,7 @@ export interface ExpressRequest extends Request {
 
 @Injectable()
 export class AuthUser implements NestMiddleware {
-  constructor(private userService: UserService) {}
+  constructor(private userService: UserService) { }
 
   async use(req: ExpressRequest, res: Response, next: NextFunction) {
     if (!req.headers.authorization) {

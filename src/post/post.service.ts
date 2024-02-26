@@ -4,14 +4,18 @@ import { Model } from 'mongoose';
 import { User } from 'src/schemas/UserSchema';
 import { CreatePostDto } from './dto/CreatePost.dto';
 import { Post } from '../schemas/PostSchema';
+import { Comment } from '../schemas/CommentSchema';
 import { UpdatePostDto } from './dto/UpdatePost.dto';
+import { CreateCommentDto } from './dto/CreateComment.dto';
+import { UpdateCommentDto } from './dto/UpdateComment.dto';
 
 @Injectable()
 export class PostService {
   constructor(
     @InjectModel(Post.name) private postModel: Model<Post>,
     @InjectModel(User.name) private userModel: Model<User>,
-  ) {}
+    @InjectModel(Comment.name) private commentModel: Model<Comment>,
+  ) { }
 
   async createPost(createPostDto: CreatePostDto, req: any) {
     try {
@@ -259,4 +263,93 @@ export class PostService {
 
     return foundCreatedPosts;
   }
+
+
+
+  // create comments
+  async createComment(createCommentDto: CreateCommentDto, postId: string, req: any) {
+    try {
+      if (!req.userId) {
+        throw new HttpException('Вы не аутентифицированный, вы не можете создавать комментария', 403)
+      }
+
+      const comment = new this.commentModel({
+        postId,
+        text: createCommentDto.text,
+        user: req.userId,
+      })
+
+      const savedComment = await comment.save();
+
+      await this.postModel.findByIdAndUpdate(postId, {
+        $push: { comments: savedComment._id }
+      });
+
+      return savedComment
+    } catch (err) {
+      console.warn(err);
+      throw new HttpException('Произошла ошибка при создании комментария', 500)
+    }
+  }
+
+
+  async deleteComment(commentId: string, req: any) {
+    try {
+      if (!req.userId) {
+        throw new HttpException('Вы не аутентифицированный, вы не можете удалить комментария', 403)
+      }
+
+      const comment = await this.commentModel.findById(commentId);
+
+      if (!comment) {
+        throw new HttpException('Комментарий не найден', 404);
+      }
+
+
+      const postId = comment.postId
+      console.log(comment.postId)
+
+      if (!postId) {
+        throw new HttpException('PostId не найдено', 404)
+      }
+
+      await this.postModel.findByIdAndUpdate(postId, {
+        $pull: { comments: commentId }
+      });
+
+
+      await this.commentModel.findByIdAndDelete(commentId);
+
+      return 'Comment has been deleted!'
+
+    } catch (err) {
+      console.warn(err);
+      throw new HttpException(`Произошла ошибка при удалении комментария ${err}`, 500)
+    }
+  }
+
+  async updateComment(commentId: string, updateCommentDto: UpdateCommentDto, req: any) {
+    try {
+      if (!req.userId) {
+        throw new HttpException('Вы не аутентифицированный, вы не можете удалить комментария', 403)
+      }
+
+
+      const updatedComment = await this.commentModel.findByIdAndUpdate(commentId, {
+        text: updateCommentDto.text
+      }, { new: true });
+
+      if (!updatedComment) {
+        throw new HttpException('Комментарий не найден', 404);
+      }
+
+      return updatedComment;
+    } catch (err) {
+      console.warn(err);
+      throw new HttpException(`${err}`, 500)
+    }
+  }
 }
+
+
+
