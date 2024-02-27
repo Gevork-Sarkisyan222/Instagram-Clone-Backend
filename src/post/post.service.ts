@@ -1,4 +1,4 @@
-import { HttpException, Injectable } from '@nestjs/common';
+import { HttpException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { User } from 'src/schemas/UserSchema';
@@ -8,6 +8,7 @@ import { Comment } from '../schemas/CommentSchema';
 import { UpdatePostDto } from './dto/UpdatePost.dto';
 import { CreateCommentDto } from './dto/CreateComment.dto';
 import { UpdateCommentDto } from './dto/UpdateComment.dto';
+import * as mongoose from 'mongoose';
 
 @Injectable()
 export class PostService {
@@ -285,7 +286,9 @@ export class PostService {
         $push: { comments: savedComment._id }
       });
 
-      return savedComment
+      const populatedComment = await savedComment.populate('user');
+
+      return populatedComment;
     } catch (err) {
       console.warn(err);
       throw new HttpException('Произошла ошибка при создании комментария', 500)
@@ -307,15 +310,19 @@ export class PostService {
 
 
       const postId = comment.postId
-      console.log(comment.postId)
 
       if (!postId) {
         throw new HttpException('PostId не найдено', 404)
       }
 
-      await this.postModel.findByIdAndUpdate(postId, {
-        $pull: { comments: commentId }
+      const objectIdPostId = new mongoose.Types.ObjectId(postId);
+
+      await this.postModel.findByIdAndUpdate(objectIdPostId, {
+        $pull: { comments: new mongoose.Types.ObjectId(commentId) }
       });
+
+      console.log('post id', comment.postId)
+      console.log('comment id', commentId)
 
 
       await this.commentModel.findByIdAndDelete(commentId);
@@ -328,16 +335,17 @@ export class PostService {
     }
   }
 
+  // update comment
+
   async updateComment(commentId: string, updateCommentDto: UpdateCommentDto, req: any) {
     try {
       if (!req.userId) {
         throw new HttpException('Вы не аутентифицированный, вы не можете удалить комментария', 403)
       }
 
-
       const updatedComment = await this.commentModel.findByIdAndUpdate(commentId, {
         text: updateCommentDto.text
-      }, { new: true });
+      }, { new: true }).populate('user');
 
       if (!updatedComment) {
         throw new HttpException('Комментарий не найден', 404);
@@ -347,6 +355,27 @@ export class PostService {
     } catch (err) {
       console.warn(err);
       throw new HttpException(`${err}`, 500)
+    }
+  }
+
+
+  async getPostComments(postId: string) {
+    try {
+      const post = await this.postModel.findById(postId);
+      if (!post) {
+        throw new NotFoundException('Пост не найден');
+      }
+
+      const commentIds = post.comments;
+
+      const comments = await this.commentModel.find({
+        _id: { $in: commentIds }
+      }).populate('user');
+
+      return comments;
+    } catch (err) {
+      console.warn(err);
+      throw new HttpException('Ошибка при получении комментариев поста', 500);
     }
   }
 }

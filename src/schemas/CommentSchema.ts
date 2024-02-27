@@ -3,7 +3,7 @@ import { Document, Types } from 'mongoose';
 
 @Schema({ timestamps: true })
 export class Comment extends Document {
-    @Prop({ required: true })
+    @Prop({ required: true, maxlength: 50 })
     text: string;
 
     @Prop({ type: Types.ObjectId, ref: 'Post' })

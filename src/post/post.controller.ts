@@ -127,4 +127,10 @@ export class PostController {
     // return 'Comment has been edited'
     return updatedComment
   }
+
+  @Get('/comments/:postId')
+  async getPostComments(@Param('postId') postId: string) {
+    const allComments = await this.postService.getPostComments(postId)
+    return allComments
+  }
 }
