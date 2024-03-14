@@ -10,6 +10,6 @@ export class CreatePostDto {
   desc: string;
 
   @IsString()
-  @IsNotEmpty()
-  tags: string;
+  @IsOptional()
+  tags?: string;
 }

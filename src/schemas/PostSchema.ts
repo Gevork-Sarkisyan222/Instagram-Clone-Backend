@@ -9,8 +9,8 @@ export class Post extends Document {
   @Prop({ required: true })
   desc: string;
 
-  @Prop({ required: true })
-  tags: string;
+  @Prop({ required: false })
+  tags?: string;
 
   @Prop({ default: [] })
   likes: string[];
